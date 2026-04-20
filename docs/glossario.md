@@ -38,4 +38,5 @@ Funciona como tradutor entre a linguagem do código para a linguagem do banco re
 
 ## Container / Docker
 
-Um container guarda o programa e tudo que ele precisa pra rodar (linguagem, bibliotecas, configurações), enquanto o Docker é a ferramenta mais popular pra criar e rodar containers.
+Um container guarda o programa e tudo que ele precisa pra rodar (linguagem, bibliotecas, configurações). Isso impede que em outra máquina tenha divergências de versões. 
+O Docker é a ferramenta mais popular pra criar e rodar containers. Ele lê o Dockerfile (lista de instruções), cria uma imagem a partir dessas instruções e usa essa imagem pra rodar o container.
