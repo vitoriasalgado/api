@@ -18,24 +18,24 @@ Os principais verbos são GET — pede e lê informação, POST — envia dados 
 
 ## REST
 
-(sua definição aqui)
+É uma maneira de organizar uma API, formada por um verbo HTTP (pra dizer o que fazer) e uma URL (pra dizer o objeto).
 
 ## JSON
 
-(sua definição aqui)
+Formato de texto mais comum nas API`s atuais para troca de dados entre cliente e servidor.
 
 ## API
 
-(sua definição aqui)
+API é o conjunto de endereços (endpoints) que um servidor oferece pra outros sistemas pegarem ou enviarem dados que só ele tem.
 
 ## Banco relacional
 
-(sua definição aqui)
+Banco de dados que guarda informações em tabelas, como planilhas, e permite que as tabelas se conectem entre si.
 
 ## ORM
 
-(sua definição aqui)
+Funciona como tradutor entre a linguagem do código para a linguagem do banco relacional.
 
 ## Container / Docker
 
-(sua definição aqui)
+Um container guarda o programa e tudo que ele precisa pra rodar (linguagem, bibliotecas, configurações), enquanto o Docker é a ferramenta mais popular pra criar e rodar containers.
