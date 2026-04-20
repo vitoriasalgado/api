@@ -22,7 +22,7 @@ Os principais verbos são GET — pede e lê informação, POST — envia dados 
 
 ## JSON
 
-Formato de texto mais comum nas API`s atuais para troca de dados entre cliente e servidor.
+Formato de texto mais comum nas APIs atuais para troca de dados entre cliente e servidor.
 
 ## API
 
