@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
 
 
 class MentorCreate(BaseModel):
@@ -42,3 +43,27 @@ async def create_mentor(payload: MentorCreate) -> MentorRead:
 @router.get("/mentors", response_model=list[MentorRead])
 async def list_mentors() -> list[MentorRead]:
     return list(mentors_db.values())
+
+@router.get("/mentors/{id}", response_model=MentorRead)
+async def get_mentor(id: int) -> MentorRead:
+    if id not in mentors_db:
+        raise HTTPException(status_code=404, detail="Mentor not found")
+    return mentors_db[id]
+
+@router.patch("/mentors/{id}", response_model=MentorRead)
+async def update_mentor(id: int, payload: MentorUpdate) -> MentorRead:
+    if id not in mentors_db:
+        raise HTTPException(status_code=404, detail="Mentor not found")
+
+    current = mentors_db[id]
+    updates = payload.model_dump(exclude_unset=True)
+    updated = current.model_copy(update=updates)
+    mentors_db[id] = updated
+    return updated
+
+@router.delete("/mentors/{id}", status_code=204)
+async def delete_mentor(id: int) -> None:
+    if id not in mentors_db:
+        raise HTTPException(status_code=404, detail="Mentor not found")
+    del mentors_db[id]
+
