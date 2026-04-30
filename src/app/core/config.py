@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: str = "INFO"
 
+    database_url: str = "sqlite+aiosqlite:///./app.db"
+
     cors_origins: str = ""
 
     @property

@@ -1,14 +1,4 @@
-import pytest
 from httpx import AsyncClient
-
-from app.api.routes import mentors
-
-
-@pytest.fixture(autouse=True)
-def reset_mentors_db():
-    mentors.mentors_db.clear()
-    mentors.next_id = 1
-    yield
 
 
 async def test_create_mentor_returns_201(client: AsyncClient) -> None:
@@ -80,4 +70,3 @@ async def test_delete_mentor_returns_204(client: AsyncClient) -> None:
 async def test_delete_mentor_returns_404_when_not_found(client: AsyncClient) -> None:
     response = await client.delete("/api/v1/mentors/999")
     assert response.status_code == 404
-
