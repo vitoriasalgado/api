@@ -7,12 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
+from app.db.base import Base
+from app.db.session import engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = get_settings()
     setup_logging(settings.log_level)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
 
 
