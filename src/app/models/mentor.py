@@ -12,3 +12,4 @@ class Mentor(Base):
     expertise: Mapped[str] = mapped_column(String(100))
     bio: Mapped[str | None] = mapped_column(Text())
     materia_id: Mapped[int | None] = mapped_column(ForeignKey("materias.id", ondelete="SET NULL"))
+    

@@ -68,6 +68,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
+    { name = "email-validator" },
     { name = "fastapi", extra = ["standard"] },
     { name = "greenlet" },
     { name = "pydantic" },
@@ -88,6 +89,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "alembic", specifier = ">=1.18.4" },
+    { name = "email-validator", specifier = ">=2.3.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.0" },
     { name = "greenlet", specifier = ">=3.5.0" },
     { name = "pydantic", specifier = ">=2.9.0" },
