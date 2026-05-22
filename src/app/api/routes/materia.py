@@ -28,6 +28,7 @@ DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 router = APIRouter(tags=["materias"])
 
+
 @router.post("/materias", status_code=201, response_model=MateriaRead)
 async def create_materia(payload: MateriaCreate, db: DbSession) -> Materia:
     materia = Materia(name=payload.name)
@@ -64,12 +65,12 @@ async def update_materia(id: int, payload: MateriaUpdate, db: DbSession) -> Mate
     await db.commit()
     await db.refresh(materia)
     return materia
-  
+
 
 @router.delete("/materias/{id}", status_code=204)
 async def delete_materia(id: int, db: DbSession) -> None:
     materia = await db.get(Materia, id)
     if materia is None:
-          raise HTTPException(status_code=404, detail="Materia not found")
+        raise HTTPException(status_code=404, detail="Materia not found")
     await db.delete(materia)
     await db.commit()

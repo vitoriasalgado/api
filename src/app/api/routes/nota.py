@@ -9,10 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models.nota import Nota
 
+
 class NotaCreate(BaseModel):
     aluno_id: int
     materia_id: int
     valor: float = Field(ge=0, le=10)
+
 
 class NotaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -22,30 +24,30 @@ class NotaRead(BaseModel):
     materia_id: int
     valor: float
 
+
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 router = APIRouter(tags=["notas"])
 
+
 @router.post("/notas", status_code=201, response_model=NotaRead)
 async def create_nota(payload: NotaCreate, db: DbSession) -> Nota:
-    nota = Nota(
-        aluno_id=payload.aluno_id,
-        materia_id=payload.materia_id,
-        valor=payload.valor
-    )
+    nota = Nota(aluno_id=payload.aluno_id, materia_id=payload.materia_id, valor=payload.valor)
     db.add(nota)
     try:
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=409, detail="Aluno or materia not found")
+        raise HTTPException(status_code=409, detail="Aluno or materia not found") from None
     await db.refresh(nota)
     return nota
+
 
 @router.get("/notas", response_model=list[NotaRead])
 async def list_notas(db: DbSession) -> list[Nota]:
     result = await db.execute(select(Nota))
     return list(result.scalars().all())
+
 
 @router.get("/notas/{id}", response_model=NotaRead)
 async def get_nota(id: int, db: DbSession) -> Nota:
@@ -54,12 +56,13 @@ async def get_nota(id: int, db: DbSession) -> Nota:
         raise HTTPException(status_code=404, detail="Nota not found")
     return nota
 
+
 @router.patch("/notas/{id}", response_model=NotaRead)
 async def update_nota(id: int, payload: NotaCreate, db: DbSession) -> Nota:
     nota = await db.get(Nota, id)
     if nota is None:
         raise HTTPException(status_code=404, detail="Nota not found")
-    
+
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():
         setattr(nota, key, value)
@@ -67,6 +70,7 @@ async def update_nota(id: int, payload: NotaCreate, db: DbSession) -> Nota:
     await db.commit()
     await db.refresh(nota)
     return nota
+
 
 @router.delete("/notas/{id}", status_code=204)
 async def delete_nota(id: int, db: DbSession) -> None:
