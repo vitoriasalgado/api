@@ -13,12 +13,14 @@ class MentorCreate(BaseModel):
     name: str = Field(min_length=1)
     expertise: str = Field(min_length=1)
     bio: str | None = None
+    materia_id: int | None = None
 
 
 class MentorUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1)
     expertise: str | None = Field(default=None, min_length=1)
     bio: str | None = None
+    materia_id: int | None = None
 
 
 class MentorRead(BaseModel):
@@ -28,6 +30,7 @@ class MentorRead(BaseModel):
     name: str
     expertise: str
     bio: str | None
+    materia_id: int | None
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
@@ -41,6 +44,7 @@ async def create_mentor(payload: MentorCreate, db: DbSession) -> Mentor:
         name=payload.name,
         expertise=payload.expertise,
         bio=payload.bio,
+        materia_id=payload.materia_id,
     )
     db.add(mentor)
     await db.commit()
