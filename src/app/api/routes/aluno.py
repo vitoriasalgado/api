@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.models.aluno import Aluno
+from app.models.aluno import Aluno, aluno_materia
 
 class AlunoCreate(BaseModel):
     name: str = Field(min_length=1)
@@ -77,3 +77,43 @@ async def delete_aluno(id: int, db: DbSession) -> None:
         raise HTTPException(status_code=404, detail="Aluno not found")
     await db.delete(aluno)
     await db.commit()
+
+@router.post("/alunos/{aluno_id}/materias/{materia_id}", status_code=204)
+async def matricular(aluno_id: int, materia_id: int, db: DbSession) -> None:
+      aluno = await db.get(Aluno, aluno_id)
+      if aluno is None:
+          raise HTTPException(status_code=404, detail="Aluno not found")
+
+      try:
+          await db.execute(
+              aluno_materia.insert().values(aluno_id=aluno_id, materia_id=materia_id)
+          )
+          await db.commit()
+      except IntegrityError:
+          await db.rollback()
+          raise HTTPException(status_code=409, detail="Already enrolled or materia not found")
+
+
+@router.delete("/alunos/{aluno_id}/materias/{materia_id}", status_code=204)
+async def desmatricular(aluno_id: int, materia_id: int, db: DbSession) -> None:
+      result = await db.execute(
+          aluno_materia.delete().where(
+              (aluno_materia.c.aluno_id == aluno_id)
+              & (aluno_materia.c.materia_id == materia_id)
+          )
+      )
+      if result.rowcount == 0:
+          raise HTTPException(status_code=404, detail="Enrollment not found")
+      await db.commit()
+
+
+@router.get("/alunos/{aluno_id}/materias", response_model=list[int])
+async def listar_materias_do_aluno(aluno_id: int, db: DbSession) -> list[int]:
+      aluno = await db.get(Aluno, aluno_id)
+      if aluno is None:
+          raise HTTPException(status_code=404, detail="Aluno not found")
+
+      result = await db.execute(
+          select(aluno_materia.c.materia_id).where(aluno_materia.c.aluno_id == aluno_id)
+      )
+      return list(result.scalars().all())
