@@ -16,6 +16,10 @@ class NotaCreate(BaseModel):
     valor: float = Field(ge=0, le=10)
 
 
+class NotaUpdate(BaseModel):
+    valor: float = Field(ge=0, le=10)
+
+
 class NotaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,7 +62,7 @@ async def get_nota(id: int, db: DbSession) -> Nota:
 
 
 @router.patch("/notas/{id}", response_model=NotaRead)
-async def update_nota(id: int, payload: NotaCreate, db: DbSession) -> Nota:
+async def update_nota(id: int, payload: NotaUpdate, db: DbSession) -> Nota:
     nota = await db.get(Nota, id)
     if nota is None:
         raise HTTPException(status_code=404, detail="Nota not found")
