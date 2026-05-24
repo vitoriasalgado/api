@@ -101,7 +101,7 @@ async def matricular(aluno_id: int, materia_id: int, db: DbSession) -> None:
         await db.rollback()
         raise HTTPException(
             status_code=409, detail="Already enrolled or materia not found"
-            ) from None
+        ) from None
 
 
 @router.delete("/alunos/{aluno_id}/materias/{materia_id}", status_code=204)
