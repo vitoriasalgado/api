@@ -3,10 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.models.aluno import Aluno
+from app.models.materia import Materia
 from app.models.nota import Nota
 
 
@@ -36,13 +37,14 @@ router = APIRouter(tags=["notas"])
 
 @router.post("/notas", status_code=201, response_model=NotaRead)
 async def create_nota(payload: NotaCreate, db: DbSession) -> Nota:
+    if await db.get(Aluno, payload.aluno_id) is None:
+        raise HTTPException(status_code=404, detail="Aluno not found")
+    if await db.get(Materia, payload.materia_id) is None:
+        raise HTTPException(status_code=404, detail="Materia not found")
+
     nota = Nota(aluno_id=payload.aluno_id, materia_id=payload.materia_id, valor=payload.valor)
     db.add(nota)
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="Aluno or materia not found") from None
+    await db.commit()
     await db.refresh(nota)
     return nota
 

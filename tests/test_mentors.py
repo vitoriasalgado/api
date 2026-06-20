@@ -1,6 +1,14 @@
 from httpx import AsyncClient
 
 
+async def test_create_mentor_returns_404_when_materia_does_not_exist(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/mentors",
+        json={"name": "Ana", "expertise": "Python", "materia_id": 999},
+    )
+    assert response.status_code == 404
+
+
 async def test_create_mentor_returns_201(client: AsyncClient) -> None:
     response = await client.post(
         "/api/v1/mentors",

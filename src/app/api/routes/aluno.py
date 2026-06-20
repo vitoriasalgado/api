@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.aluno import Aluno, aluno_materia
+from app.models.materia import Materia
 
 
 class AlunoCreate(BaseModel):
@@ -90,18 +91,17 @@ async def delete_aluno(id: int, db: DbSession) -> None:
 
 @router.post("/alunos/{aluno_id}/materias/{materia_id}", status_code=204)
 async def matricular(aluno_id: int, materia_id: int, db: DbSession) -> None:
-    aluno = await db.get(Aluno, aluno_id)
-    if aluno is None:
-        raise HTTPException(status_code=404, detail="Aluno not found") from None
+    if await db.get(Aluno, aluno_id) is None:
+        raise HTTPException(status_code=404, detail="Aluno not found")
+    if await db.get(Materia, materia_id) is None:
+        raise HTTPException(status_code=404, detail="Materia not found")
 
     try:
         await db.execute(aluno_materia.insert().values(aluno_id=aluno_id, materia_id=materia_id))
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(
-            status_code=409, detail="Already enrolled or materia not found"
-        ) from None
+        raise HTTPException(status_code=409, detail="Already enrolled") from None
 
 
 @router.delete("/alunos/{aluno_id}/materias/{materia_id}", status_code=204)

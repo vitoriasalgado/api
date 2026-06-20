@@ -44,24 +44,24 @@ async def test_create_nota_returns_422_without_required_fields(client: AsyncClie
     assert response.status_code == 422
 
 
-async def test_create_nota_returns_409_when_aluno_does_not_exist(client: AsyncClient) -> None:
+async def test_create_nota_returns_404_when_aluno_does_not_exist(client: AsyncClient) -> None:
     await _seed_aluno_e_materia(client)
 
     response = await client.post(
         "/api/v1/notas", json={"aluno_id": 999, "materia_id": 1, "valor": 8}
     )
 
-    assert response.status_code == 409
+    assert response.status_code == 404
 
 
-async def test_create_nota_returns_409_when_materia_does_not_exist(client: AsyncClient) -> None:
+async def test_create_nota_returns_404_when_materia_does_not_exist(client: AsyncClient) -> None:
     await _seed_aluno_e_materia(client)
 
     response = await client.post(
-        "/api/v1/notas", json={"aluno_id": 1, "materia_id": 999, "valor": 8}
+        "/api/v1/notas", json={"aluno_id": 999, "materia_id": 1, "valor": 8}
     )
 
-    assert response.status_code == 409
+    assert response.status_code == 404
 
 
 async def test_list_notas_returns_all(client: AsyncClient) -> None:
