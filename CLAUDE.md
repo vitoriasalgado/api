@@ -8,6 +8,8 @@ This is a teaching repository following the staged roadmap in `docs/roadmap.md`.
 
 The PR workflow is non-negotiable and codified in `docs/pull-requests.md`: one module/task = one branch (`modulo-X-...` or `task-X.Y-...`) = one PR using the obligatory template (Módulo / O que foi feito / Como testar / Perguntas de verificação / Dúvidas / Checklist), title prefixed `[Módulo X]` or `[Task X.Y]`. Squash merge, branch deleted after.
 
+**Do not pre-fill the "Perguntas de verificação" answers in PR descriptions.** The user wants to write them herself (it's the learning exercise) and ask for review afterwards. Leave a `_(responder antes de mergear)_` placeholder and remind her to fill it in. When she sends the answer, comment/refine — don't rewrite.
+
 ## Commands
 
 ```bash
