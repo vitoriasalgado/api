@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Context: a learning project
 
-This is a teaching repository following the staged roadmap in `docs/roadmap.md`. The user is learning FastAPI/SQLAlchemy/Alembic step by step. **Do not bulk-implement features.** Work one file/concept at a time, explain what each change does, and let the user run commands themselves unless they ask otherwise. See `memory/feedback_guided_learning.md` for context. The current backlog of evolution tasks lives in `docs/tasks.md` (Task 1.1 → 5.2).
+This is a teaching repository following the staged roadmap in `docs/roadmap.md`. The user is learning FastAPI/SQLAlchemy/Alembic step by step and has never done this before. **Do not bulk-implement features.** Work one file/concept at a time, explain what each change does, and let the user run commands themselves unless they ask otherwise. See `memory/feedback_guided_learning.md` for context. The current backlog of evolution tasks lives in `docs/tasks.md` (Task 1.1 → 5.2).
 
 The PR workflow is non-negotiable and codified in `docs/pull-requests.md`: one module/task = one branch (`modulo-X-...` or `task-X.Y-...`) = one PR using the obligatory template (Módulo / O que foi feito / Como testar / Perguntas de verificação / Dúvidas / Checklist), title prefixed `[Módulo X]` or `[Task X.Y]`. Squash merge, branch deleted after.
+
+**Do not pre-fill the "Perguntas de verificação" answers in PR descriptions.** The user wants to write them herself (it's the learning exercise) and ask for review afterwards. Leave a `_(responder antes de mergear)_` placeholder and remind her to fill it in. When she sends the answer, comment/refine — don't rewrite.
 
 ## Commands
 

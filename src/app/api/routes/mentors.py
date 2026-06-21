@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.models.materia import Materia
 from app.models.mentor import Mentor
 
 
@@ -40,6 +41,9 @@ router = APIRouter(tags=["mentors"])
 
 @router.post("/mentors", status_code=201, response_model=MentorRead)
 async def create_mentor(payload: MentorCreate, db: DbSession) -> Mentor:
+    if payload.materia_id is not None and await db.get(Materia, payload.materia_id) is None:
+        raise HTTPException(status_code=404, detail="Materia not found")
+
     mentor = Mentor(
         name=payload.name,
         expertise=payload.expertise,
@@ -71,6 +75,9 @@ async def update_mentor(id: int, payload: MentorUpdate, db: DbSession) -> Mentor
     mentor = await db.get(Mentor, id)
     if mentor is None:
         raise HTTPException(status_code=404, detail="Mentor not found")
+
+    if payload.materia_id is not None and await db.get(Materia, payload.materia_id) is None:
+        raise HTTPException(status_code=404, detail="Materia not found")
 
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():

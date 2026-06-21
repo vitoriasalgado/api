@@ -117,6 +117,22 @@ async def test_matricular_duplicada_returns_409(client: AsyncClient) -> None:
     assert response.status_code == 409
 
 
+async def test_matricular_returns_404_when_aluno_does_not_exist(client: AsyncClient) -> None:
+    await client.post("/api/v1/materias", json={"name": "Mat"})
+
+    response = await client.post("/api/v1/alunos/999/materias/1")
+
+    assert response.status_code == 404
+
+
+async def test_matricular_returns_404_when_materia_does_not_exist(client: AsyncClient) -> None:
+    await client.post("/api/v1/alunos", json={"name": "Maria", "email": "m@t.com"})
+
+    response = await client.post("/api/v1/alunos/1/materias/999")
+
+    assert response.status_code == 404
+
+
 async def test_desmatricular_aluno_returns_204(client: AsyncClient) -> None:
     await client.post("/api/v1/alunos", json={"name": "Maria", "email": "m@t.com"})
     await client.post("/api/v1/materias", json={"name": "Mat"})
