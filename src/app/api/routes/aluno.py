@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
 from app.models.aluno import Aluno, aluno_materia
@@ -27,6 +28,24 @@ class AlunoRead(BaseModel):
     id: int
     name: str
     email: EmailStr
+
+
+class MateriaNested(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+
+
+class NotaNested(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    materia_id: int
+    valor: float
+
+
+class AlunoDetailRead(AlunoRead):
+    materias: list[MateriaNested] = Field(default_factory=list)
+    notas: list[NotaNested] = Field(default_factory=list)
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
@@ -53,9 +72,15 @@ async def list_alunos(db: DbSession) -> list[Aluno]:
     return list(result.scalars().all())
 
 
-@router.get("/alunos/{id}", response_model=AlunoRead)
+@router.get("/alunos/{id}", response_model=AlunoDetailRead)
 async def get_aluno(id: int, db: DbSession) -> Aluno:
-    aluno = await db.get(Aluno, id)
+    stmt = (
+        select(Aluno)
+        .where(Aluno.id == id)
+        .options(selectinload(Aluno.materias), selectinload(Aluno.notas))
+    )
+    result = await db.execute(stmt)
+    aluno = result.scalar_one_or_none()
     if aluno is None:
         raise HTTPException(status_code=404, detail="Aluno not found")
     return aluno

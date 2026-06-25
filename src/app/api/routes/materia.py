@@ -1,9 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
 from app.models.materia import Materia
@@ -22,6 +23,25 @@ class MateriaRead(BaseModel):
 
     id: int
     name: str
+
+
+class MentorNested(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    expertise: str
+
+
+class AlunoNested(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    email: EmailStr
+
+
+class MateriaDetailRead(MateriaRead):
+    mentores: list[MentorNested] = Field(default_factory=list)
+    alunos: list[AlunoNested] = Field(default_factory=list)
 
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
@@ -44,9 +64,15 @@ async def list_materias(db: DbSession) -> list[Materia]:
     return list(result.scalars().all())
 
 
-@router.get("/materias/{id}", response_model=MateriaRead)
+@router.get("/materias/{id}", response_model=MateriaDetailRead)
 async def get_materia(id: int, db: DbSession) -> Materia:
-    materia = await db.get(Materia, id)
+    query = (
+        select(Materia)
+        .where(Materia.id == id)
+        .options(selectinload(Materia.mentores), selectinload(Materia.alunos))
+    )
+    result = await db.execute(query)
+    materia = result.scalar_one_or_none()
     if materia is None:
         raise HTTPException(status_code=404, detail="Materia not found")
     return materia
