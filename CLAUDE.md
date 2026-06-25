@@ -4,11 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Context: a learning project
 
-This is a teaching repository following the staged roadmap in `docs/roadmap.md`. The user is learning FastAPI/SQLAlchemy/Alembic step by step and has never done this before. **Do not bulk-implement features.** Work one file/concept at a time, explain what each change does, and let the user run commands themselves unless they ask otherwise. See `memory/feedback_guided_learning.md` for context. The current backlog of evolution tasks lives in `docs/tasks.md` (Task 1.1 → 5.2).
+This is a teaching repository following the staged roadmap in `docs/roadmap.md`. The user is learning FastAPI/SQLAlchemy/Alembic step by step and works alone (no external mentor). The current backlog of evolution tasks lives in `docs/tasks.md` (Task 1.1 → 5.2).
 
-The PR workflow is non-negotiable and codified in `docs/pull-requests.md`: one module/task = one branch (`modulo-X-...` or `task-X.Y-...`) = one PR using the obligatory template (Módulo / O que foi feito / Como testar / Perguntas de verificação / Dúvidas / Checklist), title prefixed `[Módulo X]` or `[Task X.Y]`. Squash merge, branch deleted after.
+**Learning mode is strict:** explain *what* and *why*, the user writes the code, you review afterwards. Do not write code *for* her even when asked to "verify" or "fix" — point at the file/line and the rule, let her edit. See `memory/feedback_guided_learning.md`.
 
-**Do not pre-fill the "Perguntas de verificação" answers in PR descriptions.** The user wants to write them herself (it's the learning exercise) and ask for review afterwards. Leave a `_(responder antes de mergear)_` placeholder and remind her to fill it in. When she sends the answer, comment/refine — don't rewrite.
+## Tech stack
+
+- **Python 3.12+**, package + venv managed by `uv`
+- **FastAPI** (async) + **Pydantic v2** for HTTP layer
+- **SQLAlchemy 2.x async** (`AsyncSession`, `Mapped`, `mapped_column`) + **aiosqlite**
+- **Alembic** for migrations (autogenerate-driven, manual fixups for SQLite FK ALTER)
+- **pytest** + **pytest-asyncio** (`asyncio_mode="auto"`) + **httpx.AsyncClient** for tests
+- **ruff** for lint + format (line length 100)
+- **SQLite** as the only DB (single-file dev, `:memory:` for tests)
+
+## Workflow
+
+- **Branch per task**: `task-X.Y-<slug>` (or `modulo-X-<slug>` for old roadmap modules)
+- Local commits on the branch, **conventional commit prefixes** (`feat:`, `fix:`, `test:`, `chore:`, `docs:`, `refactor:`)
+- Push to `origin` for backup/history, but **no PRs and no remote review** — user merges locally
+- After merging into `main`: pull, delete local branch, delete remote branch
+- The user still does the **"Perguntas de verificação"** from `docs/tasks.md` as a learning exercise at the end of each task — she answers herself, then asks for review
+
+## Safety / don'ts
+
+- **Don't bulk-implement.** Work one file/concept at a time. If she asks for 4 CRUDs, propose the order and wait for "go" on each.
+- **Don't write code for her.** Explain the *what* (which file, which lines, which functions) and the *why* (the concept, the trade-off). She writes; you review.
+- **Don't pre-fill "Perguntas de verificação" answers.** Leave the questions, remind her to answer, then comment/refine her answers — never substitute them. See `memory/feedback_verification_questions.md`.
+- **Don't run commands she should run.** Hand her the command, let her run it, ask for output if needed. Exceptions: `Read`/`Bash` for inspection.
+- **Don't restructure files unprompted.** This is a learning codebase — surprise refactors break her mental model.
 
 ## Commands
 
@@ -55,13 +79,17 @@ API runs at `http://localhost:8000`, docs at `/docs`, all routes under `/api/v1`
 
 **SQLite + Alembic gotcha.** SQLite doesn't support `ALTER TABLE ADD CONSTRAINT`. Migrations that add FKs to existing tables must use `op.batch_alter_table(...)` with a **named** constraint (so the matching `drop_constraint` works). See `alembic/versions/8c46aa0e0fc2_add_materia_id_to_mentors.py` for the canonical example.
 
-**Tests.** `tests/conftest.py` provides two fixtures: `db_session` creates a fresh `sqlite+aiosqlite:///:memory:` per test (full isolation, no shared state, no parallel-write issues), and `client` overrides `get_db` to inject it into an `httpx.AsyncClient` against the ASGI app. `pytest.ini_options` sets `asyncio_mode = "auto"`, so test functions don't need `@pytest.mark.asyncio`. Helper functions inside a test module are conventionally prefixed `_` (e.g. `_seed_aluno_e_materia` in `test_nota.py`).
-
 **Settings.** `app/core/config.py` — single `Settings(BaseSettings)` reading `.env`, cached via `@lru_cache`. Never read `os.environ` outside this module. `is_production` toggles `/docs` and `/redoc` off.
+
+## Testing
+
+- `tests/conftest.py` provides two fixtures: `db_session` creates a fresh `sqlite+aiosqlite:///:memory:` per test (full isolation, no shared state, no parallel-write issues), and `client` overrides `get_db` to inject it into an `httpx.AsyncClient` against the ASGI app.
+- `pytest.ini_options` sets `asyncio_mode = "auto"`, so test functions don't need `@pytest.mark.asyncio`.
+- Helper functions inside a test module are conventionally prefixed `_` (e.g. `_seed_aluno_e_materia` in `test_nota.py`).
+- **Quality bar:** every new route/handler needs at least the happy path + the 404/409/validation edge cases that handler can raise. Ruff (`check` + `format`) must pass before commit.
 
 ## Conventions worth knowing
 
 - Inside `except` clauses, `raise HTTPException(...) from None` (rule B904). The `from None` is intentional: we translate domain errors to HTTP, we don't chain stack traces to the client.
 - Line length is **100** (`pyproject.toml`). Long `raise` lines that exceed it must be broken across multiple lines, not silenced.
 - Route paths use the resource singular folder name but the URL is plural (`routes/materia.py` → `/materias`). The router import name matches the file name.
-- Commit messages are conventional (`feat:`, `fix:`, `test:`, `chore:`, `docs:`, `refactor:`). PR titles add a `[Módulo X]` or `[Task X.Y]` prefix.
