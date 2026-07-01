@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.pagination import Page
 from app.db.session import get_db
 from app.models.materia import Materia
 
@@ -58,10 +59,33 @@ async def create_materia(payload: MateriaCreate, db: DbSession) -> Materia:
     return materia
 
 
-@router.get("/materias", response_model=list[MateriaRead])
-async def list_materias(db: DbSession) -> list[Materia]:
-    result = await db.execute(select(Materia))
-    return list(result.scalars().all())
+@router.get("/materias", response_model=Page[MateriaRead])
+async def list_materias(
+    db: DbSession,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    sort: str | None = Query(None),
+) -> Page[MateriaRead]:
+    stmt = select(Materia)
+
+    if sort == "name":
+        stmt = stmt.order_by(Materia.name)
+    elif sort == "-name":
+        stmt = stmt.order_by(Materia.name.desc())
+    elif sort == "id":
+        stmt = stmt.order_by(Materia.id)
+    elif sort == "-id":
+        stmt = stmt.order_by(Materia.id.desc())
+    elif sort is not None:
+        raise HTTPException(status_code=422, detail=f"Cannot sort by {sort}")
+
+    count_result = await db.execute(select(func.count()).select_from(stmt.subquery()))
+    total = count_result.scalar_one()
+
+    result = await db.execute(stmt.offset(skip).limit(limit))
+    items = list(result.scalars().all())
+
+    return Page(items=items, total=total, skip=skip, limit=limit)
 
 
 @router.get("/materias/{id}", response_model=MateriaDetailRead)

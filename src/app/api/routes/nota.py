@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import Page
 from app.db.session import get_db
 from app.models.aluno import Aluno
 from app.models.materia import Materia
@@ -49,10 +50,39 @@ async def create_nota(payload: NotaCreate, db: DbSession) -> Nota:
     return nota
 
 
-@router.get("/notas", response_model=list[NotaRead])
-async def list_notas(db: DbSession) -> list[Nota]:
-    result = await db.execute(select(Nota))
-    return list(result.scalars().all())
+@router.get("/notas", response_model=Page[NotaRead])
+async def list_notas(
+    db: DbSession,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    aluno_id: int | None = Query(None),
+    materia_id: int | None = Query(None),
+    sort: str | None = Query(None),
+) -> Page[NotaRead]:
+    stmt = select(Nota)
+    if aluno_id is not None:
+        stmt = stmt.where(Nota.aluno_id == aluno_id)
+    if materia_id is not None:
+        stmt = stmt.where(Nota.materia_id == materia_id)
+
+    if sort == "id":
+        stmt = stmt.order_by(Nota.id)
+    elif sort == "-id":
+        stmt = stmt.order_by(Nota.id.desc())
+    elif sort == "valor":
+        stmt = stmt.order_by(Nota.valor)
+    elif sort == "-valor":
+        stmt = stmt.order_by(Nota.valor.desc())
+    elif sort is not None:
+        raise HTTPException(status_code=422, detail=f"Cannot sort by {sort}")
+
+    count_result = await db.execute(select(func.count()).select_from(stmt.subquery()))
+    total = count_result.scalar_one()
+
+    result = await db.execute(stmt.offset(skip).limit(limit))
+    items = list(result.scalars().all())
+
+    return Page(items=items, total=total, skip=skip, limit=limit)
 
 
 @router.get("/notas/{id}", response_model=NotaRead)

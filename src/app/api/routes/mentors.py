@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.pagination import Page
 from app.db.session import get_db
 from app.models.materia import Materia
 from app.models.mentor import Mentor
@@ -63,10 +64,40 @@ async def create_mentor(payload: MentorCreate, db: DbSession) -> Mentor:
     return mentor
 
 
-@router.get("/mentors", response_model=list[MentorRead])
-async def list_mentors(db: DbSession) -> list[Mentor]:
-    result = await db.execute(select(Mentor))
-    return list(result.scalars().all())
+@router.get("/mentors", response_model=Page[MentorRead])
+async def list_mentors(
+    db: DbSession,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    materia_id: int | None = Query(None),
+    sort: str | None = Query(None),
+) -> Page[MentorRead]:
+    stmt = select(Mentor)
+    if materia_id is not None:
+        stmt = stmt.where(Mentor.materia_id == materia_id)
+
+    if sort == "name":
+        stmt = stmt.order_by(Mentor.name)
+    elif sort == "-name":
+        stmt = stmt.order_by(Mentor.name.desc())
+    elif sort == "id":
+        stmt = stmt.order_by(Mentor.id)
+    elif sort == "-id":
+        stmt = stmt.order_by(Mentor.id.desc())
+    elif sort == "expertise":
+        stmt = stmt.order_by(Mentor.expertise)
+    elif sort == "-expertise":
+        stmt = stmt.order_by(Mentor.expertise.desc())
+    elif sort is not None:
+        raise HTTPException(status_code=422, detail=f"Cannot sort by {sort}")
+
+    count_result = await db.execute(select(func.count()).select_from(stmt.subquery()))
+    total = count_result.scalar_one()
+
+    result = await db.execute(stmt.offset(skip).limit(limit))
+    items = list(result.scalars().all())
+
+    return Page(items=items, total=total, skip=skip, limit=limit)
 
 
 @router.get("/mentors/{id}", response_model=MentorRead)
