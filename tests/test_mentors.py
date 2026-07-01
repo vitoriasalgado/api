@@ -27,7 +27,41 @@ async def test_list_mentors_returns_all(client: AsyncClient) -> None:
     response = await client.get("/api/v1/mentors")
 
     assert response.status_code == 200
-    assert len(response.json()) == 2
+    body = response.json()
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+
+
+async def test_list_mentors_filtra_por_materia_id(client: AsyncClient) -> None:
+    await client.post("/api/v1/materias", json={"name": "Mat"})
+    await client.post(
+        "/api/v1/mentors",
+        json={"name": "Ana", "expertise": "Py", "materia_id": 1},
+    )
+    await client.post("/api/v1/mentors", json={"name": "João", "expertise": "Go"})
+
+    response = await client.get("/api/v1/mentors?materia_id=1")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["total"] == 1
+    assert body["items"][0]["name"] == "Ana"
+
+
+async def test_list_mentors_ordena_por_name_asc(client: AsyncClient) -> None:
+    await client.post("/api/v1/mentors", json={"name": "Carlos", "expertise": "x"})
+    await client.post("/api/v1/mentors", json={"name": "Ana", "expertise": "y"})
+
+    response = await client.get("/api/v1/mentors?sort=name")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert [m["name"] for m in body["items"]] == ["Ana", "Carlos"]
+
+
+async def test_list_mentors_sort_invalido_returns_422(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/mentors?sort=hackear")
+    assert response.status_code == 422
 
 
 async def test_get_mentor_returns_200(client: AsyncClient) -> None:

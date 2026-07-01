@@ -38,7 +38,72 @@ async def test_list_alunos_returns_all(client: AsyncClient) -> None:
     response = await client.get("/api/v1/alunos")
 
     assert response.status_code == 200
-    assert len(response.json()) == 2
+    body = response.json()
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+
+
+async def test_list_alunos_respeita_skip_e_limit(client: AsyncClient) -> None:
+    for i in range(5):
+        await client.post("/api/v1/alunos", json={"name": f"A{i}", "email": f"a{i}@t.com"})
+
+    response = await client.get("/api/v1/alunos?skip=2&limit=2")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["total"] == 5
+    assert body["skip"] == 2
+    assert body["limit"] == 2
+    assert len(body["items"]) == 2
+
+
+async def test_list_alunos_limit_acima_do_teto_returns_422(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/alunos?limit=1000")
+    assert response.status_code == 422
+
+
+async def test_list_alunos_filtra_por_materia_id(client: AsyncClient) -> None:
+    await client.post("/api/v1/alunos", json={"name": "A1", "email": "a1@t.com"})
+    await client.post("/api/v1/alunos", json={"name": "A2", "email": "a2@t.com"})
+    await client.post("/api/v1/alunos", json={"name": "A3", "email": "a3@t.com"})
+    await client.post("/api/v1/materias", json={"name": "Mat"})
+    await client.post("/api/v1/alunos/1/materias/1")
+    await client.post("/api/v1/alunos/2/materias/1")
+
+    response = await client.get("/api/v1/alunos?materia_id=1")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["total"] == 2
+    assert {a["id"] for a in body["items"]} == {1, 2}
+
+
+async def test_list_alunos_ordena_por_name_asc(client: AsyncClient) -> None:
+    await client.post("/api/v1/alunos", json={"name": "Carlos", "email": "c@t.com"})
+    await client.post("/api/v1/alunos", json={"name": "Ana", "email": "a@t.com"})
+    await client.post("/api/v1/alunos", json={"name": "Beatriz", "email": "b@t.com"})
+
+    response = await client.get("/api/v1/alunos?sort=name")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert [a["name"] for a in body["items"]] == ["Ana", "Beatriz", "Carlos"]
+
+
+async def test_list_alunos_ordena_por_name_desc(client: AsyncClient) -> None:
+    await client.post("/api/v1/alunos", json={"name": "Carlos", "email": "c@t.com"})
+    await client.post("/api/v1/alunos", json={"name": "Ana", "email": "a@t.com"})
+
+    response = await client.get("/api/v1/alunos?sort=-name")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert [a["name"] for a in body["items"]] == ["Carlos", "Ana"]
+
+
+async def test_list_alunos_sort_invalido_returns_422(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/alunos?sort=hackear")
+    assert response.status_code == 422
 
 
 async def test_get_aluno_returns_200(client: AsyncClient) -> None:

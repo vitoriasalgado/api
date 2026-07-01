@@ -21,7 +21,25 @@ async def test_list_materias_returns_all(client: AsyncClient) -> None:
     response = await client.get("/api/v1/materias")
 
     assert response.status_code == 200
-    assert len(response.json()) == 2
+    body = response.json()
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+
+
+async def test_list_materias_ordena_por_name_asc(client: AsyncClient) -> None:
+    await client.post("/api/v1/materias", json={"name": "Zoologia"})
+    await client.post("/api/v1/materias", json={"name": "Alcool"})
+
+    response = await client.get("/api/v1/materias?sort=name")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert [m["name"] for m in body["items"]] == ["Alcool", "Zoologia"]
+
+
+async def test_list_materias_sort_invalido_returns_422(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/materias?sort=hackear")
+    assert response.status_code == 422
 
 
 async def test_get_materia_returns_200(client: AsyncClient) -> None:
