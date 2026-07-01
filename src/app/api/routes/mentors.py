@@ -34,6 +34,13 @@ class MentorRead(BaseModel):
     materia_id: int | None
 
 
+class MateriaNested(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+
+
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 router = APIRouter(tags=["mentors"])
@@ -95,3 +102,14 @@ async def delete_mentor(id: int, db: DbSession) -> None:
         raise HTTPException(status_code=404, detail="Mentor not found")
     await db.delete(mentor)
     await db.commit()
+
+
+@router.get("/mentors/{id}/materias", response_model=list[MateriaNested])
+async def listar_materias_do_mentor(id: int, db: DbSession) -> list[Materia]:
+    mentor = await db.get(Mentor, id)
+    if mentor is None:
+        raise HTTPException(status_code=404, detail="Mentor not found")
+    if mentor.materia_id is None:
+        return []
+    materia = await db.get(Materia, mentor.materia_id)
+    return [materia]
