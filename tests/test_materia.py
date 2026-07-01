@@ -66,3 +66,21 @@ async def test_delete_materia_returns_204(client: AsyncClient) -> None:
 async def test_delete_materia_returns_404_when_not_found(client: AsyncClient) -> None:
     response = await client.delete("/api/v1/materias/999")
     assert response.status_code == 404
+
+
+async def test_get_materia_retorna_detail_com_mentores_e_alunoslistar_alunos(
+    client: AsyncClient,
+) -> None:
+    await client.post("/api/v1/alunos", json={"id": 1, "name": "Maria", "email": "m@t.com"})
+    await client.post("/api/v1/materias", json={"id": 1, "name": "Matemática"})
+    await client.post(
+        "/api/v1/mentors", json={"id": 1, "name": "Ana", "expertise": "Python", "materia_id": 1}
+    )
+    await client.post("/api/v1/alunos/1/materias/1")
+
+    response = await client.get("/api/v1/materias/1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["alunos"]) == 1
+    assert len(body["mentores"]) == 1

@@ -150,3 +150,23 @@ async def test_desmatricular_nao_existente_returns_404(client: AsyncClient) -> N
     response = await client.delete("/api/v1/alunos/1/materias/1")
 
     assert response.status_code == 404
+
+
+async def test_get_aluno_retorna_detail_com_materias_e_notas(
+    client: AsyncClient,
+) -> None:
+    await client.post("/api/v1/alunos", json={"name": "Maria", "email": "m@t.com"})
+    await client.post("/api/v1/materias", json={"name": "Matematica"})
+    await client.post("/api/v1/alunos/1/materias/1")
+    await client.post("/api/v1/notas", json={"aluno_id": 1, "materia_id": 1, "valor": 8})
+
+    response = await client.get("/api/v1/alunos/1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == 1
+    assert body["name"] == "Maria"
+    assert len(body["materias"]) == 1
+    assert body["materias"][0]["name"] == "Matematica"
+    assert len(body["notas"]) == 1
+    assert body["notas"][0]["valor"] == 8

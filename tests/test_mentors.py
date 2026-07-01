@@ -78,3 +78,39 @@ async def test_delete_mentor_returns_204(client: AsyncClient) -> None:
 async def test_delete_mentor_returns_404_when_not_found(client: AsyncClient) -> None:
     response = await client.delete("/api/v1/mentors/999")
     assert response.status_code == 404
+
+
+async def test_listar_materias_do_mentor_404_quando_mentor_nao_existe(
+    client: AsyncClient,
+) -> None:
+    response = await client.get("/api/v1/mentors/999/materias")
+    assert response.status_code == 404
+
+
+async def test_listar_materias_do_mentor_retorna_lista_vazia_sem_materia(
+    client: AsyncClient,
+) -> None:
+    await client.post("/api/v1/mentors", json={"name": "Ana", "expertise": "Python"})
+
+    response = await client.get("/api/v1/mentors/1/materias")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+async def test_listar_materias_do_mentor_retorna_materia_quando_atribuida(
+    client: AsyncClient,
+) -> None:
+    await client.post("/api/v1/materias", json={"name": "Matematica"})
+    await client.post(
+        "/api/v1/mentors",
+        json={"name": "Ana", "expertise": "Python", "materia_id": 1},
+    )
+
+    response = await client.get("/api/v1/mentors/1/materias")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["id"] == 1
+    assert body[0]["name"] == "Matematica"
