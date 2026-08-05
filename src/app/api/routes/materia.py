@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.pagination import Page
+from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.db.session import get_db
 from app.models.materia import Materia
 
@@ -77,7 +78,7 @@ async def list_materias(
     elif sort == "-id":
         stmt = stmt.order_by(Materia.id.desc())
     elif sort is not None:
-        raise HTTPException(status_code=422, detail=f"Cannot sort by {sort}")
+        raise BusinessRuleError(f"Cannot sort by {sort}", {"field": "sort", "value": sort})
 
     count_result = await db.execute(select(func.count()).select_from(stmt.subquery()))
     total = count_result.scalar_one()
@@ -98,7 +99,7 @@ async def get_materia(id: int, db: DbSession) -> Materia:
     result = await db.execute(query)
     materia = result.scalar_one_or_none()
     if materia is None:
-        raise HTTPException(status_code=404, detail="Materia not found")
+        raise NotFoundError("Materia not found", {"id": id})
     return materia
 
 
@@ -106,7 +107,7 @@ async def get_materia(id: int, db: DbSession) -> Materia:
 async def update_materia(id: int, payload: MateriaUpdate, db: DbSession) -> Materia:
     materia = await db.get(Materia, id)
     if materia is None:
-        raise HTTPException(status_code=404, detail="Materia not found")
+        raise NotFoundError("Materia not found", {"id": id})
 
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():
@@ -121,6 +122,6 @@ async def update_materia(id: int, payload: MateriaUpdate, db: DbSession) -> Mate
 async def delete_materia(id: int, db: DbSession) -> None:
     materia = await db.get(Materia, id)
     if materia is None:
-        raise HTTPException(status_code=404, detail="Materia not found")
+        raise NotFoundError("Materia not found", {"id": id})
     await db.delete(materia)
     await db.commit()

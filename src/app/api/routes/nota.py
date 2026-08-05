@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.pagination import Page
+from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.db.session import get_db
 from app.models.aluno import Aluno
 from app.models.materia import Materia
@@ -39,9 +40,9 @@ router = APIRouter(tags=["notas"])
 @router.post("/notas", status_code=201, response_model=NotaRead)
 async def create_nota(payload: NotaCreate, db: DbSession) -> Nota:
     if await db.get(Aluno, payload.aluno_id) is None:
-        raise HTTPException(status_code=404, detail="Aluno not found")
+        raise NotFoundError("Aluno not found", {"id": payload.aluno_id})
     if await db.get(Materia, payload.materia_id) is None:
-        raise HTTPException(status_code=404, detail="Materia not found")
+        raise NotFoundError("Materia not found", {"id": payload.materia_id})
 
     nota = Nota(aluno_id=payload.aluno_id, materia_id=payload.materia_id, valor=payload.valor)
     db.add(nota)
@@ -74,7 +75,7 @@ async def list_notas(
     elif sort == "-valor":
         stmt = stmt.order_by(Nota.valor.desc())
     elif sort is not None:
-        raise HTTPException(status_code=422, detail=f"Cannot sort by {sort}")
+        raise BusinessRuleError(f"Cannot sort by {sort}", {"field": "sort", "value": sort})
 
     count_result = await db.execute(select(func.count()).select_from(stmt.subquery()))
     total = count_result.scalar_one()
@@ -89,7 +90,7 @@ async def list_notas(
 async def get_nota(id: int, db: DbSession) -> Nota:
     nota = await db.get(Nota, id)
     if nota is None:
-        raise HTTPException(status_code=404, detail="Nota not found")
+        raise NotFoundError("Nota not found", {"id": id})
     return nota
 
 
@@ -97,7 +98,7 @@ async def get_nota(id: int, db: DbSession) -> Nota:
 async def update_nota(id: int, payload: NotaUpdate, db: DbSession) -> Nota:
     nota = await db.get(Nota, id)
     if nota is None:
-        raise HTTPException(status_code=404, detail="Nota not found")
+        raise NotFoundError("Nota not found", {"id": id})
 
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():
@@ -112,6 +113,6 @@ async def update_nota(id: int, payload: NotaUpdate, db: DbSession) -> Nota:
 async def delete_nota(id: int, db: DbSession) -> None:
     nota = await db.get(Nota, id)
     if nota is None:
-        raise HTTPException(status_code=404, detail="Nota not found")
+        raise NotFoundError("Nota not found", {"id": id})
     await db.delete(nota)
     await db.commit()

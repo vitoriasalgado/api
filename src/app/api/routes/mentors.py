@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.pagination import Page
+from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.db.session import get_db
 from app.models.materia import Materia
 from app.models.mentor import Mentor
@@ -50,7 +51,7 @@ router = APIRouter(tags=["mentors"])
 @router.post("/mentors", status_code=201, response_model=MentorRead)
 async def create_mentor(payload: MentorCreate, db: DbSession) -> Mentor:
     if payload.materia_id is not None and await db.get(Materia, payload.materia_id) is None:
-        raise HTTPException(status_code=404, detail="Materia not found")
+        raise NotFoundError("Materia not found", {"id": payload.materia_id})
 
     mentor = Mentor(
         name=payload.name,
@@ -89,7 +90,7 @@ async def list_mentors(
     elif sort == "-expertise":
         stmt = stmt.order_by(Mentor.expertise.desc())
     elif sort is not None:
-        raise HTTPException(status_code=422, detail=f"Cannot sort by {sort}")
+        raise BusinessRuleError(f"Cannot sort by {sort}", {"field": "sort", "value": sort})
 
     count_result = await db.execute(select(func.count()).select_from(stmt.subquery()))
     total = count_result.scalar_one()
@@ -104,7 +105,7 @@ async def list_mentors(
 async def get_mentor(id: int, db: DbSession) -> Mentor:
     mentor = await db.get(Mentor, id)
     if mentor is None:
-        raise HTTPException(status_code=404, detail="Mentor not found")
+        raise NotFoundError("Mentor not found", {"id": id})
     return mentor
 
 
@@ -112,10 +113,10 @@ async def get_mentor(id: int, db: DbSession) -> Mentor:
 async def update_mentor(id: int, payload: MentorUpdate, db: DbSession) -> Mentor:
     mentor = await db.get(Mentor, id)
     if mentor is None:
-        raise HTTPException(status_code=404, detail="Mentor not found")
+        raise NotFoundError("Mentor not found", {"id": id})
 
     if payload.materia_id is not None and await db.get(Materia, payload.materia_id) is None:
-        raise HTTPException(status_code=404, detail="Materia not found")
+        raise NotFoundError("Materia not found", {"id": payload.materia_id})
 
     updates = payload.model_dump(exclude_unset=True)
     for key, value in updates.items():
@@ -130,7 +131,7 @@ async def update_mentor(id: int, payload: MentorUpdate, db: DbSession) -> Mentor
 async def delete_mentor(id: int, db: DbSession) -> None:
     mentor = await db.get(Mentor, id)
     if mentor is None:
-        raise HTTPException(status_code=404, detail="Mentor not found")
+        raise NotFoundError("Mentor not found", {"id": id})
     await db.delete(mentor)
     await db.commit()
 
@@ -139,7 +140,7 @@ async def delete_mentor(id: int, db: DbSession) -> None:
 async def listar_materias_do_mentor(id: int, db: DbSession) -> list[Materia]:
     mentor = await db.get(Mentor, id)
     if mentor is None:
-        raise HTTPException(status_code=404, detail="Mentor not found")
+        raise NotFoundError("Mentor not found", {"id": id})
     if mentor.materia_id is None:
         return []
     materia = await db.get(Materia, mentor.materia_id)
